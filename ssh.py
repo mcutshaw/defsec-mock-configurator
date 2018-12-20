@@ -1,5 +1,6 @@
 import paramiko
 import os
+import stat
 
 class ssh:
 
@@ -47,6 +48,10 @@ class ssh:
             self.invoke_sftp()
         self.sftp.put(name, name)
 
+    def rm(self, name):
+        if self.sftp == None:
+            self.invoke_sftp()
+        self.sftp.remove(name)
     def check_file_exists(self, name):
         if self.sftp == None:
             self.invoke_sftp()
@@ -72,3 +77,18 @@ class ssh:
                 self.put_folder(item)
         os.chdir('..')
         self.sftp.chdir('..')
+
+    def remove_folder(self, name):
+        if self.sftp == None:
+            self.invoke_sftp()
+
+        dir = self.sftp.listdir(name)
+        self.chdir(name)
+        for item in dir:
+            stats = self.sftp.stat(item)
+            if stat.S_ISDIR(stats.st_mode):
+                self.remove_folder(item)
+            else:
+                self.rm(item)
+        self.chdir('..')
+        self.sftp.rmdir(name)
