@@ -1,0 +1,6 @@
+__pycache__/
+*.db
+*.conf
+design.txt
+!example.conf
+something/
