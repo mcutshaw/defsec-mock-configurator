@@ -46,6 +46,21 @@ class database:
     def getHosts(self):
         return [item[0] for item in self.execute('SELECT name from hosts')]
 
+    def getModules(self):
+        return [item[0] for item in self.execute('SELECT name from modules')]
+
+    def getModulesFromHost(self, host):
+        return [item[0] for item in self.execute("SELECT rowid from modules WHERE host='{host}'".format(host=host))]
+
+    def getModuleAll(self, rowid):
+        return self.execute("SELECT host,name,state,operands,stdin,stdout,stderr from modules WHERE rowid='{rowid}'".format(rowid=rowid))[0]
+
+    def getHostAll(self, host):
+        return self.execute("SELECT name,ip from hosts WHERE name='{name}'".format(name=host))[0]
+
+    def getHostIP(self, host):
+        return self.execute("SELECT ip from hosts WHERE name='{name}'".format(name=host))[0][0]
+
     def insertModule(self, host, name, state="unstarted", operands=None, stdin=None, stdout=None, stderr=None):
         self.executevar('INSERT INTO modules VALUES(?,?,?,?,?,?,?)', (host, name, state, operands, stdin, stdout, stderr))
 

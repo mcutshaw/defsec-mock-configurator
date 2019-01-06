@@ -1,0 +1,36 @@
+#!/bin/sh
+#BEGIN_VARS
+#user_file REQUIRED
+#password OPTIONAL
+#shell OPTIONAL
+#sudoers OPTIONAL
+#END_VARS
+#COMPATIBLE debian 9
+
+. ./vars
+
+if [ -z $shell ]; then
+	shell="/bin/bash"
+fi
+
+if [ -z $password ]; then
+	password="Password1!"
+fi
+
+add_user() {
+    useradd -m -s $shell $1
+    echo "$1:$password"
+}
+
+for user in $(cat $user_file); do
+    add_user $user
+done
+if [ ! -z $sudoers ]; then
+	sudoers=$(echo $sudoers | tr "," " ")
+	for sudoer in $sudoers; do
+        grep $sudoer"	ALL=(ALL:ALL) ALL" /etc/sudoers
+        if [ $? -eq 1 ]; then
+		    echo $sudoer"	ALL=(ALL:ALL) ALL" >> /etc/sudoers 
+        fi
+	done
+fi

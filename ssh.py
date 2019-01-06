@@ -9,10 +9,11 @@ class ssh:
         self.con.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
         self.con.connect(address,username=username, password=password)
         self.sftp = None
+        self.dir = self.con.exec_command('pwd')[1].read().rstrip().decode('utf-8') + '/'
     
     def _cmd(self, command):
-        (self.stdin, self.stdout, self.stderr) = self.con.exec_command(command)
-    
+        (self.stdin, self.stdout, self.stderr) = self.con.exec_command('cd ' + self.dir + '; ' + command)
+        print(self.stderr.read().rstrip().decode('utf-8'),end='')
     def send_cmd(self, command):
         self._cmd(command)
         return self.stdout.read().rstrip().decode('utf-8')
@@ -36,7 +37,13 @@ class ssh:
     def chdir(self, name):
         if self.sftp == None:
             self.invoke_sftp()
+
         self.sftp.chdir(name)
+
+        if name[-1:] != '/':
+            name += '/'
+        self.send_cmd('cd ' + name)
+        self.dir += name
 
     def put(self, local, remote):
         if self.sftp == None:
@@ -52,6 +59,7 @@ class ssh:
         if self.sftp == None:
             self.invoke_sftp()
         self.sftp.remove(name)
+        
     def check_file_exists(self, name):
         if self.sftp == None:
             self.invoke_sftp()
@@ -76,7 +84,7 @@ class ssh:
             else:
                 self.put_folder(item)
         os.chdir('..')
-        self.sftp.chdir('..')
+        self.chdir('..')
 
     def remove_folder(self, name):
         if self.sftp == None:
@@ -92,3 +100,19 @@ class ssh:
                 self.rm(item)
         self.chdir('..')
         self.sftp.rmdir(name)
+
+    def write(self, file_path, content):
+        if self.sftp == None:
+            self.invoke_sftp()
+
+        f = self.sftp.file(file_path, 'w')
+        f.write(content)
+        f.close()
+    
+    def make_executable(self, file_path):
+        if self.sftp == None:
+            self.invoke_sftp()
+
+        self.sftp.chmod(file_path, 755)
+
+    
