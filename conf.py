@@ -23,7 +23,15 @@ class config:
     def loadHosts(self):
         for key in self.config['Hosts']:
             host = self.config['Hosts'][key]
-            self.db.insertHost(host, self.config[host]['ip'])
+
+            ip = self.config[host]['ip']
+            if len(ip.split('.')) == 1:
+                if len(self.config[host]['subnet'].split('.')) == 3:
+                    ip = self.config[host]['subnet'] + '.' + ip
+                else:
+                    ip = self.config[host]['subnet'][:-1] + ip
+            print(ip)
+            self.db.insertHost(host, ip)
 
     def loadModules(self):
         for host in self.db.getHosts():
