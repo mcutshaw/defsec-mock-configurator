@@ -1,0 +1,47 @@
+#!/bin/bash
+#BEGIN_VARS
+#ip REQUIRED
+#subnet OPTIONAL
+#subnet_mask REQUIRED
+#gateway OPTIONAL
+#nameservers OPTIONAL
+#END_VARS
+#COMPATIBLE debian 9
+
+#overcomplicated, redo later
+interfaces=$(ip a | grep -o [0-9]:\ .* | cut -f 2 -d ':' | cut -c 2- )
+
+if [ -f "/etc/network/interfaces" ]; then
+    echo '' > /etc/network/interfaces
+    for interface in $interfaces; do
+        if [ $interface == 'lo' ]; then
+            echo 'auto lo' >> /etc/network/interfaces
+            echo 'iface lo inet loopback' >> /etc/network/interfaces
+        else
+            echo 'iface eth0 inet static' >> /etc/network/interfaces
+            echo 'address '$ip >> /etc/network/interfaces
+            echo 'netmask '$subnet_mask >> /etc/network/interfaces
+            if [ ! -z $gateway ]; then
+	            echo 'gateway '$gateway >> /etc/network/interfaces
+            fi
+            if [ ! -z $nameservers ]; then
+                nameservers=$(echo $nameservers | tr "," " ")
+	            echo 'dns-nameservers '$nameservers >> /etc/network/interfaces
+            fi
+        fi
+
+    done
+    reboot
+    
+    
+
+
+else
+    if [ -d "/etc/sysconfig/network-scripts" ]; then
+
+    else
+        if [ -d "/etc/sysconfig/network" ]; then
+
+        fi
+    fi
+fi 
