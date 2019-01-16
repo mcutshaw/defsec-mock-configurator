@@ -8,17 +8,34 @@
 #END_VARS
 #COMPATIBLE debian 9
 
-#overcomplicated, redo later
-interfaces=$(ip a | grep -o [0-9]:\ .* | cut -f 2 -d ':' | cut -c 2- )
+source vars
+mask2cdr ()
+{
+   # Assumes there's no "255." after a non-255 byte in the mask
+   local x=${1##*255.}
+   set -- 0^^^128^192^224^240^248^252^254^ $(( (${#1} - ${#x})*2 )) ${x%%.*}
+   x=${1%%$3*}
+   echo $(( $2 + (${#x}/4) ))
+}
+
+ip2sub () {
+    if (( ${#ip} < 4 )); then
+        ip=$( echo $subnet | cut -d'.' -f-3 )'.'$ip
+    fi
+}
+
+ip2sub
 
 if [ -f "/etc/network/interfaces" ]; then
+    interfaces=$(ip a | grep -o [0-9]:\ .* | cut -f 2 -d ':' | cut -c 2- )
     echo '' > /etc/network/interfaces
     for interface in $interfaces; do
         if [ $interface == 'lo' ]; then
             echo 'auto lo' >> /etc/network/interfaces
             echo 'iface lo inet loopback' >> /etc/network/interfaces
         else
-            echo 'iface eth0 inet static' >> /etc/network/interfaces
+            echo 'auto '$interface >> /etc/network/interfaces
+            echo 'iface '$interface' inet static' >> /etc/network/interfaces
             echo 'address '$ip >> /etc/network/interfaces
             echo 'netmask '$subnet_mask >> /etc/network/interfaces
             if [ ! -z $gateway ]; then
@@ -33,15 +50,26 @@ if [ -f "/etc/network/interfaces" ]; then
     done
     reboot
     
-    
-
-
 else
-    if [ -d "/etc/sysconfig/network-scripts" ]; then
-
-    else
-        if [ -d "/etc/sysconfig/network" ]; then
-
+    if [ -d "/etc/sysconfig/network-scripts" ] || [ -d "/etc/sysconfig/network"  ]; then 
+        if [ -z $subnet_mask ]; then
+            cidr=24
         fi
+        if [ -z $cidr ]; then
+            cidr=$(mask2cdr $subnetmask)
+        fi
+	    connections=$(nmcli device | tr -s ' ' | awk 'NR!=1' | cut -d' ' -f4-)
+        
+        for connection in $connections; do
+            if [ $connection != '--']; then
+                nmcli mod ''$connection'' ipv4.method 'manual'
+                nmcli mod ''$connection'' ipv4.addresses $ip'/'$cidr' '$gateway
+                if [ ! -z $nameservers ]; then
+                    nameservers=$(echo $nameservers | tr "," " ")
+	                nmcli mod ''$connection'' ipv4.dns $nameservers
+                fi
+            fi
+        done
     fi
+    reboot
 fi 
