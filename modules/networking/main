@@ -51,7 +51,7 @@ if [ -f "/etc/network/interfaces" ]; then
     reboot
     
 else
-    if [ -d "/etc/sysconfig/network-scripts" ] || [ -d "/etc/sysconfig/network"  ]; then 
+    if [ command nmcli 2>/dev/null ]; then 
         if [ -z $subnet_mask ]; then
             cidr=24
         fi
@@ -70,6 +70,7 @@ else
                 fi
             fi
         done
+        reboot
     fi
-    reboot
+    
 fi 
